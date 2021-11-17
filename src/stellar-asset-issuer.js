@@ -1,6 +1,6 @@
 var StellarSdk = require("stellar-sdk");
 var server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
-
+var networkPassphrase = StellarSdk.Networks.TESTNET;
 /**
  * create custom Asset
  * @param {String} issuerSecretKey key to issue
@@ -12,7 +12,7 @@ module.exports.createAsset = function(issuerSecretKey){
     );
 
     // Create an object to represent the new asset
-    return new StellarSdk.Asset("kittyMeow", issuingKeys.publicKey());
+    return new StellarSdk.Asset(process.env.ASSET_CODE, issuingKeys.publicKey());
 }
 
 /**
@@ -47,6 +47,35 @@ module.exports.trustIssuer = function(secretKey, asset){
         return server.submitTransaction(transaction);
     })
     .then(console.log)
+}
+
+module.exports.setClawBack = async function (accountPrivateKey) {
+    
+    let accountKeys = StellarSdk.Keypair.fromSecret(accountPrivateKey);
+
+    await server
+        .loadAccount(accountKeys.publicKey())
+        //set up claw back
+        .then(function(issuer){
+            var transaction = new StellarSdk.TransactionBuilder(issuer, {
+                fee: 100,
+                networkPassphrase : networkPassphrase
+            })
+            .addOperation(
+                Operation.setOptions({
+                    setFlags: StellarSdk.AuthClawbackEnabledFlag | StellarSdk.AuthRevocableFlag
+                })
+            )
+            .setTimeout(100)
+            .build();
+
+            transaction.sign(accountKeys);
+            return server.submitTransaction(transaction);
+        })
+        //handling error
+        .catch(function(error){
+            console.error("Error!", error);
+        })
 }
 
 /**
