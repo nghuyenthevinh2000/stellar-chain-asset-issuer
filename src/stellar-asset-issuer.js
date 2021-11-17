@@ -1,18 +1,19 @@
 var StellarSdk = require("stellar-sdk");
-var server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
+var server = new StellarSdk.Server("https://horizon-testnet.stellar.org")
 var networkPassphrase = StellarSdk.Networks.TESTNET;
 /**
  * create custom Asset
  * @param {String} issuerSecretKey key to issue
+ * @param {String} asset_code
  * @returns {StellarSdk.Asset} custom asset
  */
-module.exports.createAsset = function(issuerSecretKey){
+module.exports.createAsset = function(issuerSecretKey, asset_code){
     var issuingKeys = StellarSdk.Keypair.fromSecret(
       issuerSecretKey
     );
 
     // Create an object to represent the new asset
-    return new StellarSdk.Asset(process.env.ASSET_CODE, issuingKeys.publicKey());
+    return new StellarSdk.Asset(asset_code, issuingKeys.publicKey());
 }
 
 /**
@@ -20,18 +21,21 @@ module.exports.createAsset = function(issuerSecretKey){
  * @param {String} secretKey key to receive
  * @param {StellarSdk.Asset} asset custom defined asset
  */
-module.exports.trustIssuer = function(secretKey, asset){
+module.exports.trustIssuer = async function(secretKey, asset){
     // First, the receiving account must trust the asset
     var receivingKeys = StellarSdk.Keypair.fromSecret(
       secretKey
     );
 
-    server
+    console.log(receivingKeys.publicKey())
+
+    await server
     .loadAccount(receivingKeys.publicKey())
     .then(function (receiver) {
+      console.log("hello")
         var transaction = new StellarSdk.TransactionBuilder(receiver, {
         fee: 100,
-        networkPassphrase: StellarSdk.Networks.TESTNET,
+        networkPassphrase: networkPassphrase,
         })
         // The `changeTrust` operation creates (or alters) a trustline
         // The `limit` parameter below is optional
@@ -85,7 +89,7 @@ module.exports.setClawBack = async function (accountPrivateKey) {
  * @param {StellarSdk.Asset} asset custom defined asset
  * @param {String} amount amount to be sent
  */
-module.exports.sendAsset = function(issuerSecretKey, receiverSecretKey, asset, amount){
+module.exports.sendAsset = async function(issuerSecretKey, receiverSecretKey, asset, amount){
     // Second, the issuing account actually sends a payment using the asset
 
     // Keys for accounts to issue and receive the new asset
@@ -97,7 +101,7 @@ module.exports.sendAsset = function(issuerSecretKey, receiverSecretKey, asset, a
       receiverSecretKey
     );
 
-    server
+    await server
       .loadAccount(issuingKeys.publicKey())
       .then(function (issuer) {
         var transaction = new StellarSdk.TransactionBuilder(issuer, {

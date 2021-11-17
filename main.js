@@ -3,8 +3,19 @@ var readline = require('readline');
 
 require("dotenv").config();
 
-var asset = stellarAssetIssuer.createAsset(process.env.ACCOUNT_ISSUER_PRIVATE)
+(async () => {
+    try{
+        var assets = process.env.ASSET_CODE.split(' ');
 
-stellarAssetIssuer.trustIssuer(process.env.ACCOUNT_RECEIVER_PRIVATE, asset)
+        for(const asset of assets){
+            var assetStellar = stellarAssetIssuer.createAsset(process.env.ACCOUNT_ISSUER_PRIVATE, asset);
 
-stellarAssetIssuer.sendAsset(process.env.ACCOUNT_ISSUER_PRIVATE, process.env.ACCOUNT_RECEIVER_PRIVATE, asset, "10000")
+            await stellarAssetIssuer.trustIssuer(process.env.ACCOUNT_RECEIVER_PRIVATE, assetStellar)
+
+            await stellarAssetIssuer.sendAsset(process.env.ACCOUNT_ISSUER_PRIVATE, process.env.ACCOUNT_RECEIVER_PRIVATE, asset, "10000")
+        }
+    }catch(err){
+        console.log(err)
+    }
+})()
+
