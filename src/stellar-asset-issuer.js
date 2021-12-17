@@ -17,6 +17,38 @@ module.exports.createAsset = function(issuerSecretKey, asset_code){
 }
 
 /**
+ * check if an account has trust line for a specific asset
+ * @param {String} accountPublicKey 
+ * @param {String} asset 
+ * @param {String} assetIssuer asset issuer public address
+ */
+module.exports.hasTrustLine = async function(secretKey, asset, assetIssuer){
+  let has_trust_line = false;
+  var accountKey = StellarSdk.Keypair.fromSecret(
+    secretKey
+  );
+
+  var issuerKey = StellarSdk.Keypair.fromSecret(
+    assetIssuer
+  );
+
+  await server
+      .loadAccount(accountKey.publicKey())
+      .then(function (caller) {
+          caller.balances.forEach((element) => {
+              if(element.asset_type === StellarSdk.Asset.native().getAssetType()) return;
+              
+              if(element.asset_code === asset && element.asset_issuer === issuerKey.publicKey()){
+                  has_trust_line = true;
+                  return;
+              }
+          });
+      });
+  
+  return has_trust_line;
+}
+
+/**
  * let receiver trust Issuer account
  * @param {String} secretKey key to receive
  * @param {StellarSdk.Asset} asset custom defined asset
